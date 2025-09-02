@@ -1,0 +1,33 @@
+import type { InterfaceA } from '@barrelreaper/test/fixtures/barrel/module-a';
+import type { InterfaceB } from '@barrelreaper/test/fixtures/barrel/module-b';
+import { ModuleA } from '@barrelreaper/test/fixtures/barrel/module-a';
+import { ModuleB } from '@barrelreaper/test/fixtures/barrel/module-b';
+import type { TypeA } from '@barrelreaper/test/fixtures/barrel/module-a';
+import type { TypeB } from '@barrelreaper/test/fixtures/barrel/module-b';
+import { a1 as a1LocalRenamed } from '@barrelreaper/test/fixtures/barrel/module-a';
+import { a2 } from '@barrelreaper/test/fixtures/barrel/module-a';
+import { a3 } from '@barrelreaper/test/fixtures/barrel/module-a';
+import { b1 as b1LocallyRenamed } from '@barrelreaper/test/fixtures/barrel/module-b';
+import { b2 } from '@barrelreaper/test/fixtures/barrel/module-b';
+import { b3 } from '@barrelreaper/test/fixtures/barrel/module-b';
+import def from '@barrelreaper/test/fixtures/barrel/index';
+import { b1Renamed } from '@barrelreaper/test/fixtures/barrel/module-b';
+import { b2Renamed } from '@barrelreaper/test/fixtures/barrel/module-b';
+
+void def;
+void a1LocalRenamed;
+void a2;
+void a3;
+void b1LocallyRenamed;
+void b2;
+void b3;
+void b2Renamed;
+void b1Renamed;
+void ModuleA.a1;
+void ModuleB.b1;
+
+export type A = TypeA;
+export interface IA extends InterfaceA {}
+
+export type B = TypeB;
+export interface IB extends InterfaceB {}
