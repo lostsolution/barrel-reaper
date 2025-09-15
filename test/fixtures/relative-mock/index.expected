@@ -1,0 +1,33 @@
+import type { InterfaceA } from '../barrel/module-a';
+import type { InterfaceB } from '../barrel/module-b';
+import { ModuleA } from '../barrel/module-a';
+import { ModuleB } from '../barrel/module-b';
+import type { TypeA } from '../barrel/module-a';
+import type { TypeB } from '../barrel/module-b';
+import { a1 as a1LocalRenamed } from '../barrel/module-a';
+import { a2 } from '../barrel/module-a';
+import { a3 } from '../barrel/module-a';
+import { b1 as b1LocallyRenamed } from '../barrel/module-b';
+import { b2 } from '../barrel/module-b';
+import { b3 } from '../barrel/module-b';
+import def from '../barrel/index';
+import { b1Renamed } from '../barrel/module-b';
+import { b2Renamed } from '../barrel/module-b';
+
+void def;
+void a1LocalRenamed;
+void a2;
+void a3;
+void b1LocallyRenamed;
+void b2;
+void b3;
+void b2Renamed;
+void b1Renamed;
+void ModuleA.a1;
+void ModuleB.b1;
+
+export type A = TypeA;
+export interface IA extends InterfaceA {}
+
+export type B = TypeB;
+export interface IB extends InterfaceB {}

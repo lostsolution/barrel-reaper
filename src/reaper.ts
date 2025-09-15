@@ -4,6 +4,7 @@ import path from 'node:path';
 import { BarrelExportReaper } from './exports';
 import { Formatter } from './formatter';
 import { BarrelImportReaper } from './imports';
+import { getImportPath } from './path';
 import { ReaperSpinner } from './spinner';
 import { Std, ellipsePath } from './std';
 import type { BarrelImportInfo, BarrelImportStatement, BarrelReaperContext, BarrelReaperResult } from './types';
@@ -74,7 +75,7 @@ export class BarrelReaper {
             const content = fs.readFileSync(importInfo.filePath, 'utf-8');
             const lines = content.split('\n');
 
-            const newImports = await this.generateDirectImports(importInfo.imports);
+            const newImports = await this.generateDirectImports(importInfo.imports, importInfo.filePath);
             const linesToRemove = new Set(importInfo.lineNumbers.map((n) => n - 1));
             const filteredLines = lines.filter((_, index) => !linesToRemove.has(index));
             const reaped = [...newImports, ...filteredLines].join('\n');
@@ -94,7 +95,7 @@ export class BarrelReaper {
     /** Generates direct import statements by mapping each barrel import to its original
      * source using the export mapping. Preserves import types (default vs named) and
      * local aliases while resolving the correct source path */
-    private async generateDirectImports(imports: BarrelImportStatement[]): Promise<string[]> {
+    private async generateDirectImports(imports: BarrelImportStatement[], fromFile: string): Promise<string[]> {
         const importStatements: string[] = [];
 
         for (const { typeImport, importName, localName } of imports) {
@@ -107,7 +108,11 @@ export class BarrelReaper {
                 continue;
             }
 
-            const sourcePath = barrelExport.sourcePath;
+            let sourcePath = barrelExport.sourcePath;
+            if (!this.ctx.barrelAlias && barrelExport.sourceFilePath) {
+                sourcePath = getImportPath(fromFile, barrelExport.sourceFilePath);
+            }
+
             const typePrefix = typeImport ? 'type ' : '';
             const exportName = barrelExport.exportName;
 
@@ -132,7 +137,7 @@ export class BarrelReaper {
 
     private report() {
         Std.info(`Barrel:\x1b[0m ${ellipsePath(this.ctx.barrelFile, process.stdout.columns - 20)}`);
-        Std.info(`Alias:\x1b[0m ${this.ctx.barrelAlias}`);
+        if (this.ctx.barrelAlias) Std.info(`Alias:\x1b[0m ${this.ctx.barrelAlias}`);
         Std.info(`Glob:\x1b[0m ${this.ctx.reaperGlob}`);
         Std.writeLine('');
     }

@@ -33,10 +33,10 @@ export class Std {
     }
 
     static warning(message: string): void {
-        Std.writeLine(`\x1b[33m⚠️ ${message}\x1b[0m`);
+        Std.writeLine(`\x1b[33m⚔ ${message}\x1b[0m`);
     }
 
     static error(message: string): void {
-        Std.writeLine(`\x1b[31m❌ ${message}\x1b[0m`);
+        Std.writeLine(`\x1b[31m☠ ${message}\x1b[0m`);
     }
 }
