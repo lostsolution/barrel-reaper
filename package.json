@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "description": "Barrel files sunt diabolus. Amen.",
     "license": "MIT",
-    "bin": "./src/cli.ts",
+    "bin": "./bin/cli.js",
     "scripts": {
         "start": "bun src/cli.ts",
         "test": "bun test",
