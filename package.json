@@ -6,17 +6,19 @@
     "bin": "./src/cli.ts",
     "scripts": {
         "start": "bun src/cli.ts",
-        "test": "bun test"
+        "test": "bun test",
+        "build": "bun build src/cli.ts --outdir bin --format cjs --target node --external typescript --external prettier --minify && chmod +x ./bin/cli.js"
     },
     "dependencies": {
-        "glob": "^10.3.0",
-        "prettier": "^3.6.2",
-        "tsx": "^4.20.5",
-        "typescript": "^5.9.2"
+        "glob": "^10.3.0"
     },
     "devDependencies": {
         "@types/bun": "^1.2.21",
         "eslint": "^9.34.0"
+    },
+    "peerDependencies": {
+        "typescript": "^5.9.2",
+        "prettier": "^3.6.2"
     },
     "engines": {
         "bun": ">=1.2.21"
