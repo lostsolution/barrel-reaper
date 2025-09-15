@@ -12,7 +12,7 @@ import {
     isValidReExport,
     parseSourceFile,
 } from './ast';
-import { getRelativeSourcePath, resolveRelativeModulePath, resolveSourcePath } from './path';
+import { getBarrelExportPath, resolveExportPath, resolveRelativeModulePath } from './path';
 import { Std, ellipsePath } from './std';
 import type { BarrelExportMap, BarrelReaperContext } from './types';
 
@@ -38,6 +38,10 @@ export class BarrelExportReaper {
 
         const exports: BarrelExportMap = {};
         const fromModule = statement.moduleSpecifier.text;
+        const sourceFilePath = resolveRelativeModulePath(fromModule, filePath);
+        const sourcePath = resolveExportPath(fromModule, this.ctx);
+
+        if (!sourceFilePath) return exports;
 
         if (hasNamedExports(statement.exportClause)) {
             /** Named re-export: `export { a, b as c } from './file'` */
@@ -48,7 +52,8 @@ export class BarrelExportReaper {
                 exports[exportName] = {
                     exportName,
                     exportType: originalName === 'default' ? 'default' : 'named',
-                    sourcePath: resolveSourcePath(fromModule, this.ctx),
+                    sourcePath,
+                    sourceFilePath,
                 };
             });
         } else if (hasNamespacedExports(statement.exportClause)) {
@@ -57,7 +62,8 @@ export class BarrelExportReaper {
             exports[exportName] = {
                 exportName,
                 exportType: 'named',
-                sourcePath: resolveSourcePath(fromModule, this.ctx),
+                sourcePath,
+                sourceFilePath,
             };
         } else {
             /** Wildcard re-exporting: `export * from './file'` - recursively collect all exports */
@@ -74,8 +80,8 @@ export class BarrelExportReaper {
     /** Processes direct exports from source files and maps each exported
      * identifier to its source location and export type. Handles variables,
      * functions, classes, and default exports with proper type classification */
-    private processDirectExports(statement: ts.Statement, filePath: string): BarrelExportMap {
-        const sourcePath = getRelativeSourcePath(filePath, this.ctx);
+    private processDirectExports(statement: ts.Statement, sourceFilePath: string): BarrelExportMap {
+        const sourcePath = getBarrelExportPath(sourceFilePath, this.ctx);
         const exports: BarrelExportMap = {};
 
         /** Direct export assignment (CommonJS): `export = something` */
@@ -84,13 +90,12 @@ export class BarrelExportReaper {
                 exportName: 'default',
                 exportType: 'default',
                 sourcePath,
+                sourceFilePath,
             };
             return exports;
         }
 
-        if (!hasExportModifier(statement)) {
-            return exports;
-        }
+        if (!hasExportModifier(statement)) return exports;
 
         if (ts.isVariableStatement(statement)) {
             /** Variable exports: `export const a = 1, b = 2` */
@@ -99,6 +104,7 @@ export class BarrelExportReaper {
                     exportName,
                     exportType: 'named',
                     sourcePath,
+                    sourceFilePath,
                 };
             });
         } else if (isNamedDeclaration(statement)) {
@@ -109,8 +115,8 @@ export class BarrelExportReaper {
             const exportType = isDefault ? 'default' : 'named';
 
             /** Default exports in re-exported files should not be reflected to avoid conflicts */
-            if (isDefault && filePath !== this.ctx.barrelFile) {
-                const displayPath = ellipsePath(filePath, process.stdout.columns - 40);
+            if (isDefault && sourceFilePath !== this.ctx.barrelFile) {
+                const displayPath = ellipsePath(sourceFilePath, process.stdout.columns - 40);
                 Std.warning(`Default export found in re-exported file: ${displayPath}`);
                 return exports;
             }
@@ -119,6 +125,7 @@ export class BarrelExportReaper {
                 exportName,
                 exportType,
                 sourcePath,
+                sourceFilePath,
             };
         } else if (ts.isTypeAliasDeclaration(statement) && hasExportModifier(statement)) {
             /** Type alias exports: `export type MyType = string` */
@@ -127,6 +134,7 @@ export class BarrelExportReaper {
                 exportName,
                 exportType: 'named',
                 sourcePath,
+                sourceFilePath,
             };
         } else if (ts.isInterfaceDeclaration(statement) && hasExportModifier(statement)) {
             /** Interface exports: `export interface MyInterface { ... }` */
@@ -135,6 +143,7 @@ export class BarrelExportReaper {
                 exportName,
                 exportType: 'named',
                 sourcePath,
+                sourceFilePath,
             };
         }
 
