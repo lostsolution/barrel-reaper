@@ -1,5 +1,6 @@
 import type { InterfaceA } from '@barrelreaper/test/fixtures/barrel/module-a';
 import type { InterfaceB } from '@barrelreaper/test/fixtures/barrel/module-b';
+import { Enum } from '@barrelreaper/test/fixtures/barrel/module-enum';
 import { ModuleA } from '@barrelreaper/test/fixtures/barrel/module-a';
 import { ModuleB } from '@barrelreaper/test/fixtures/barrel/module-b';
 import type { TypeA } from '@barrelreaper/test/fixtures/barrel/module-a';
@@ -11,6 +12,7 @@ import { b1 as b1LocallyRenamed } from '@barrelreaper/test/fixtures/barrel/modul
 import { b2 } from '@barrelreaper/test/fixtures/barrel/module-b';
 import { b3 } from '@barrelreaper/test/fixtures/barrel/module-b';
 import def from '@barrelreaper/test/fixtures/barrel/index';
+import { enumValue } from '@barrelreaper/test/fixtures/barrel/module-enum';
 import { b1Renamed } from '@barrelreaper/test/fixtures/barrel/module-b';
 import { b2Renamed } from '@barrelreaper/test/fixtures/barrel/module-b';
 
@@ -31,3 +33,6 @@ export interface IA extends InterfaceA {}
 
 export type B = TypeB;
 export interface IB extends InterfaceB {}
+
+void enumValue;
+void Enum;

@@ -145,6 +145,15 @@ export class BarrelExportReaper {
                 sourcePath,
                 sourceFilePath,
             };
+        } else if (ts.isEnumDeclaration(statement) && hasExportModifier(statement)) {
+            /** Enum exports: `export enum MyEnum { ... }` */
+            const exportName = statement.name.text;
+            exports[exportName] = {
+                exportName,
+                exportType: 'named',
+                sourcePath,
+                sourceFilePath,
+            };
         }
 
         return exports;

@@ -1,5 +1,6 @@
 import type { InterfaceA, InterfaceB } from '@barrelreaper/test/fixtures/barrel';
 import {
+    Enum,
     ModuleA,
     ModuleB,
     type TypeA,
@@ -11,6 +12,7 @@ import {
     b2,
     b3,
     default as def,
+    enumValue,
 } from '@barrelreaper/test/fixtures/barrel';
 import { b1Renamed, b2Renamed } from '@barrelreaper/test/fixtures/barrel/index';
 
@@ -31,3 +33,6 @@ export interface IA extends InterfaceA {}
 
 export type B = TypeB;
 export interface IB extends InterfaceB {}
+
+void enumValue;
+void Enum;
