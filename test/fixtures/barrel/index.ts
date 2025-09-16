@@ -19,3 +19,6 @@ export * as ModuleB from './module-b';
 
 /** default export in barrel */
 export default {};
+
+/** re-export with enums */
+export * from './module-enum';
