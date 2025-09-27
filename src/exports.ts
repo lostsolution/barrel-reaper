@@ -12,7 +12,8 @@ import {
     isValidReExport,
     parseSourceFile,
 } from './ast';
-import { getBarrelExportPath, resolveExportPath, resolveRelativeModulePath } from './path';
+import { getBarrelExportPath, resolveExportPath } from './path';
+import { resolver } from './resolver';
 import { Std, ellipsePath } from './std';
 import type { BarrelExportMap, BarrelReaperContext } from './types';
 
@@ -38,7 +39,7 @@ export class BarrelExportReaper {
 
         const exports: BarrelExportMap = {};
         const fromModule = statement.moduleSpecifier.text;
-        const sourceFilePath = resolveRelativeModulePath(fromModule, filePath);
+        const sourceFilePath = resolver.resolveModule(fromModule, filePath);
         const sourcePath = resolveExportPath(fromModule, this.ctx);
 
         if (!sourceFilePath) return exports;
@@ -67,7 +68,7 @@ export class BarrelExportReaper {
             };
         } else {
             /** Wildcard re-exporting: `export * from './file'` - recursively collect all exports */
-            const targetPath = resolveRelativeModulePath(fromModule, filePath);
+            const targetPath = resolver.resolveModule(fromModule, filePath);
             if (targetPath) {
                 const targetExports = this.collectExports(targetPath);
                 Object.assign(exports, targetExports);

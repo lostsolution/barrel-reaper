@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import path from 'node:path';
 
 import type { BarrelReaperContext } from './types';
@@ -29,17 +28,4 @@ export const getImportPath = (fromFile: string, toFile: string): string => {
 export const resolveExportPath = (exportFrom: string, ctx: BarrelReaperContext): string => {
     if (!exportFrom.startsWith('./')) return exportFrom;
     return ctx.barrelAlias ? `${ctx.barrelAlias}${exportFrom.slice(1)}` : exportFrom;
-};
-
-export const resolveRelativeModulePath = (relativeModulePath: string, currentFile: string): string | undefined => {
-    const currentDir = path.dirname(currentFile);
-    const resolved = path.resolve(currentDir, relativeModulePath);
-    const extensions = ['.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx', '/index.js', '/index.jsx'];
-
-    for (const ext of extensions) {
-        const candidate = resolved + ext;
-        if (fs.existsSync(candidate)) return candidate;
-    }
-
-    return;
 };
