@@ -26,7 +26,6 @@ export class BarrelExportReaper {
         this.ctx = ctx;
         this.visited = new Set();
         this.exports = {};
-
         this.collectExports(ctx.barrelFile);
     }
 

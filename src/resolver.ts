@@ -7,10 +7,12 @@ import ts from 'typescript';
  * instead of re-inventing the wheel for module resolution. */
 export class ModuleResolver {
     private moduleCache: ts.ModuleResolutionCache;
+    private compilerOptionsCache: Map<string, ts.CompilerOptions>;
 
     constructor() {
         const cwd = process.cwd();
         this.moduleCache = ts.createModuleResolutionCache(cwd, (fileName) => fileName);
+        this.compilerOptionsCache = new Map();
     }
 
     public resolveModule(moduleSpecifier: string, containingFile: string): Maybe<string> {
@@ -20,14 +22,22 @@ export class ModuleResolver {
     }
 
     private getCompilerOptionsForFile(containingFile: string): ts.CompilerOptions {
+        const dirName = path.dirname(containingFile);
+        if (this.compilerOptionsCache.has(dirName)) return this.compilerOptionsCache.get(dirName)!;
+
         const configPath =
             ts.findConfigFile(containingFile, ts.sys.fileExists, 'tsconfig.json') ||
             ts.findConfigFile(containingFile, ts.sys.fileExists, 'jsconfig.json');
 
-        if (!configPath) return {};
+        const options = configPath
+            ? (() => {
+                  const { error, config } = ts.readConfigFile(configPath, ts.sys.readFile);
+                  return error ? {} : ts.parseJsonConfigFileContent(config, ts.sys, path.dirname(configPath)).options;
+              })()
+            : {};
 
-        const { error, config } = ts.readConfigFile(configPath, ts.sys.readFile);
-        return error ? {} : ts.parseJsonConfigFileContent(config, ts.sys, path.dirname(configPath)).options;
+        this.compilerOptionsCache.set(dirName, options);
+        return options;
     }
 }
 
