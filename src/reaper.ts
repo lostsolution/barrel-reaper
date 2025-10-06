@@ -20,8 +20,6 @@ export class BarrelReaper {
         this.exportReaper = new BarrelExportReaper(ctx);
         this.importReaper = new BarrelImportReaper(ctx);
         this.spinner = new ReaperSpinner();
-
-        this.report();
         this.exportReaper.report();
     }
 
@@ -35,13 +33,11 @@ export class BarrelReaper {
         this.importReaper.report();
 
         if (Object.keys(this.exportReaper.exports).length === 0) {
-            Std.error('No barrel exports found to reap.');
-            return process.exit(0);
+            throw new Error('No barrel exports found to reap.');
         }
 
         if (this.importReaper.imports.length === 0) {
-            Std.error('No barrel imports found to reap.');
-            return process.exit(0);
+            throw new Error('No barrel imports found to reap.');
         }
     }
 
@@ -61,7 +57,7 @@ export class BarrelReaper {
             const formatted = await formatter?.formatFile(importInfo.filePath);
             let warning = this.ctx.dryRun ? ' \x1b[33m[dry-run]\x1b[0m' : '';
             warning += formatted === false ? ' \x1b[33m[⚠️ format error]\x1b[0m' : '';
-            this.spinner.stop(`\x1b[36m→ Scavenged ${displayPath} [${importInfo.imports.length} imports]${warning}`);
+            this.spinner.stop(`\x1b[33m→ Scavenged ${displayPath} [${importInfo.imports.length} imports]${warning}`);
         }
 
         return results;
@@ -133,12 +129,5 @@ export class BarrelReaper {
         }
 
         return importStatements;
-    }
-
-    private report() {
-        Std.info(`Barrel:\x1b[0m ${ellipsePath(this.ctx.barrelFile, process.stdout.columns - 20)}`);
-        if (this.ctx.barrelAlias) Std.info(`Alias:\x1b[0m ${this.ctx.barrelAlias}`);
-        Std.info(`Glob:\x1b[0m ${this.ctx.reaperGlob}`);
-        Std.writeLine('');
     }
 }
