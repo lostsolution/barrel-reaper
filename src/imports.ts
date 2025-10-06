@@ -173,10 +173,10 @@ export class BarrelImportReaper {
         const defaultImports = imports.filter(({ importType, typeImport }) => !typeImport && importType === 'default');
         const typeImports = imports.filter(({ typeImport }) => typeImport);
 
-        Std.success(`Detected ${imports.length} imports in ${this.imports.length} files:`);
-        if (namedImports.length) Std.writeLine(`    - ${namedImports.length} named imports`);
-        if (defaultImports.length) Std.writeLine(`    - ${defaultImports.length} default imports`);
-        if (typeImports.length) Std.writeLine(`    - ${typeImports.length} type imports`);
-        Std.writeLine('');
+        const std = imports.length === 0 ? Std.warning : Std.success;
+        std(
+            `Detected ${imports.length} imports in ${this.imports.length} files:`,
+            `${namedImports.length} named + ${defaultImports.length} default + ${typeImports.length} type imports`,
+        );
     }
 }

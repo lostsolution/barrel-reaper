@@ -191,9 +191,10 @@ export class BarrelExportReaper {
         const namedExports = reexports.filter(({ exportType }) => exportType === 'named');
         const defaultExports = reexports.filter(({ exportType }) => exportType === 'default');
 
-        Std.success(`Collected ${reexports.length} exports:`);
-        Std.writeLine(`    - ${namedExports.length} named`);
-        Std.writeLine(`    - ${defaultExports.length} default`);
-        Std.writeLine('');
+        const std = reexports.length === 0 ? Std.warning : Std.success;
+        std(
+            `Collected ${reexports.length} exports:`,
+            `${namedExports.length} named + ${defaultExports.length} default exports`,
+        );
     }
 }

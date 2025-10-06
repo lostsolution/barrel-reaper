@@ -24,19 +24,19 @@ export class Std {
         process.stdout.write(message + '\n');
     }
 
-    static info(message: string): void {
-        Std.writeLine(`\x1b[36m→ ${message}\x1b[0m`);
+    static info(message: string, detail: string = ''): void {
+        Std.writeLine(`\x1b[36m→ ${message}\x1b[0m ${detail}`);
     }
 
-    static success(message: string): void {
-        Std.writeLine(`\x1b[32m✓ ${message}\x1b[0m`);
+    static success(message: string, detail: string = ''): void {
+        Std.writeLine(`\x1b[32m✓ ${message}\x1b[0m ${detail}`);
     }
 
-    static warning(message: string): void {
-        Std.writeLine(`\x1b[33m⚔ ${message}\x1b[0m`);
+    static warning(message: string, detail: string = ''): void {
+        Std.writeLine(`\x1b[33m⚔ ${message}\x1b[0m ${detail}`);
     }
 
-    static error(message: string): void {
-        Std.writeLine(`\x1b[31m☠ ${message}\x1b[0m`);
+    static error(message: string, detail: string = ''): void {
+        Std.writeLine(`\x1b[31m☠ ${message}\x1b[0m ${detail}`);
     }
 }
