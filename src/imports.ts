@@ -35,7 +35,6 @@ export class BarrelImportReaper {
                 '**/coverage/**',
                 '**/.next/**',
                 '**/out/**',
-                '**/lib/**',
                 '**/*.spec.{js,ts,tsx,jsx}',
                 '**/*.test.{js,ts,tsx,jsx}',
                 '**/mocks/**',
