@@ -61,10 +61,9 @@ export class BarrelImportReaper {
         const relativeBarrelPath = path.relative(path.dirname(filePath), barrelDir);
         const normalizedRelativePath = relativeBarrelPath.replace(/\\/g, '/');
 
-        const patterns = [normalizedRelativePath, `${normalizedRelativePath}/index`];
-        if (barrelAlias) {
-            patterns.push(barrelAlias, `${barrelAlias}/index`);
-        }
+        const patterns = [normalizedRelativePath, `${normalizedRelativePath}/`, `${normalizedRelativePath}/index`];
+        if (barrelAlias) patterns.push(barrelAlias, `${barrelAlias}/`, `${barrelAlias}/index`);
+
         return patterns;
     }
 
