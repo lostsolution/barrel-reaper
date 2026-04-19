@@ -1,0 +1,8 @@
+import { deepFn } from '../barrel/sub/impl';
+import { DEEP_CONST } from '../barrel/sub/impl';
+import type { DeepCallback } from '../barrel/sub/impl';
+
+void deepFn();
+void DEEP_CONST;
+const cb: DeepCallback = () => {};
+void cb;

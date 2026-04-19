@@ -1,0 +1,5 @@
+import { foo } from '@core/foo';
+import { bar } from '@core/bar';
+
+void foo;
+void bar;
