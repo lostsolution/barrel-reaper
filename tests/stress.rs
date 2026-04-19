@@ -31,9 +31,8 @@ fn stress_reap() {
     let ctx = Context {
         barrel_file: tmp.join("barrel/index.ts"),
         barrel_alias: None,
-        reaper_glob: "src".to_string(),
+        search_glob: Some("src/**".to_string()),
         root_dir: tmp.clone(),
-        no_format: true,
         dry_run: true,
     };
 
@@ -52,7 +51,11 @@ fn stress_reap() {
             elapsed,
             results.len() as f64 / elapsed.as_secs_f64()
         );
-        assert_eq!(results.len(), N_IMPORTERS, "every importer should be rewritten");
+        assert_eq!(
+            results.len(),
+            N_IMPORTERS,
+            "every importer should be rewritten"
+        );
     }
 
     let total: u128 = times.iter().map(|t| t.as_micros()).sum();
