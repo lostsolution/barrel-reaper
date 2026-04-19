@@ -34,7 +34,11 @@ fn all_specifiers(info: &BarrelImportInfo) -> Vec<&BarrelImport> {
 const FULL_BARREL: &str = "tests/fixtures/full-suite/barrel/index.ts";
 
 fn full_suite_via_alias() -> Context {
-    ctx(FULL_BARREL, Some("@barrel"), "fixtures/full-suite/via-alias/**")
+    ctx(
+        FULL_BARREL,
+        Some("@barrel"),
+        "fixtures/full-suite/via-alias/**",
+    )
 }
 
 fn full_suite_via_relative() -> Context {
