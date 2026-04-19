@@ -1,10 +1,12 @@
-# barrel-reaper
+<p align="center">
+  <img src="logo.png" alt="barrel-reaper" width="220" />
+</p>
 
-Barrel files sunt diabolus. Amen.
+<h2 align="center">barrel-reaper</h2>
+<p align="center"><em>Barrel files sunt diabolus. Amen.</em><br>Rewrites barrel imports as direct imports at the source. </p>
 
-Rewrites barrel imports as direct imports at the source. Respects
-`tsconfig.json`, follows `.gitignore`, processes files in
-parallel.
+
+--- 
 
 ## Install
 
@@ -48,11 +50,11 @@ use barrel_reaper::{reap, Context};
 use std::path::PathBuf;
 
 let results = reap(&Context {
-    barrel_file: PathBuf::from("src/lib/index.ts"),
+    barrel_file:   PathBuf::from("src/lib/index.ts"),
     barrel_alias: Some("@lib".into()),
-    search_glob: Some("src/**".into()),
-    root_dir:    PathBuf::from("."),
-    dry_run:     false,
+    search_glob:  Some("src/**".into()),
+    root_dir:     PathBuf::from("."),
+    dry_run:      false,
 });
 ```
 
