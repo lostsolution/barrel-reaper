@@ -12,9 +12,8 @@ fn ctx(barrel: &str, alias: Option<&str>, glob: &str) -> Context {
     Context {
         barrel_file: PathBuf::from(barrel),
         barrel_alias: alias.map(String::from),
-        reaper_glob: glob.to_string(),
+        search_glob: Some(glob.to_string()),
         root_dir: PathBuf::from("tests"),
-        no_format: true,
         dry_run: true,
     }
 }
@@ -35,11 +34,11 @@ fn all_specifiers(info: &BarrelImportInfo) -> Vec<&BarrelImport> {
 const FULL_BARREL: &str = "tests/fixtures/full-suite/barrel/index.ts";
 
 fn full_suite_via_alias() -> Context {
-    ctx(FULL_BARREL, Some("@barrel"), "full-suite/via-alias")
+    ctx(FULL_BARREL, Some("@barrel"), "fixtures/full-suite/via-alias/**")
 }
 
 fn full_suite_via_relative() -> Context {
-    ctx(FULL_BARREL, None, "full-suite/via-relative")
+    ctx(FULL_BARREL, None, "fixtures/full-suite/via-relative/**")
 }
 
 fn collected_exports() -> HashMap<String, BarrelExport> {
@@ -177,7 +176,7 @@ fn reaps_through_chained_barrels() {
         &ctx(
             "tests/fixtures/chained/barrel/index.ts",
             None,
-            "chained/consumer",
+            "fixtures/chained/consumer/**",
         ),
         "tests/fixtures/chained/consumer/consumer.expected",
     );
@@ -191,7 +190,7 @@ fn reaps_mixed_default_named_renamed_type() {
         &ctx(
             "tests/fixtures/mixed/barrel/index.ts",
             None,
-            "mixed/consumer",
+            "fixtures/mixed/consumer/**",
         ),
         "tests/fixtures/mixed/consumer/consumer.expected",
     );
@@ -207,7 +206,7 @@ fn reaps_in_monorepo_with_per_package_tsconfig() {
         &ctx(
             "tests/fixtures/monorepo/packages/core/src/index.ts",
             Some("@core"),
-            "monorepo/packages/app",
+            "fixtures/monorepo/packages/app/**",
         ),
         "tests/fixtures/monorepo/packages/app/src/consumer.expected",
     );

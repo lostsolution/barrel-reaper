@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use globset::{Glob, GlobMatcher};
 use ignore::{DirEntry, WalkBuilder};
 use oxc_allocator::Allocator;
 use oxc_ast::ast::*;
@@ -10,6 +11,19 @@ use rayon::prelude::*;
 
 use crate::resolver::ModuleResolver;
 use crate::{Context, SymbolKind};
+
+const DEFAULT_IGNORED_DIRS: &[&str] = &[
+    "node_modules",
+    "target",
+    "dist",
+    "build",
+    ".cache",
+    ".next",
+    ".turbo",
+    ".svelte-kit",
+    "coverage",
+    "out",
+];
 
 #[derive(Debug, Clone)]
 pub struct BarrelImport {
@@ -36,12 +50,22 @@ pub fn find_barrel_imports(ctx: &Context, resolver: &ModuleResolver) -> Vec<Barr
         return Vec::new();
     };
     let needles = build_needles(ctx);
+    let matcher: Option<GlobMatcher> = ctx
+        .search_glob
+        .as_deref()
+        .and_then(|g| Glob::new(g).ok().map(|g| g.compile_matcher()));
 
     let candidates: Vec<DirEntry> = WalkBuilder::new(&ctx.root_dir)
         .standard_filters(true)
+        .filter_entry(|entry| {
+            entry
+                .file_name()
+                .to_str()
+                .is_none_or(|name| !DEFAULT_IGNORED_DIRS.contains(&name))
+        })
         .build()
         .filter_map(Result::ok)
-        .filter(|entry| is_candidate_file(entry, ctx))
+        .filter(|entry| is_candidate_file(entry, &ctx.root_dir, matcher.as_ref()))
         .collect();
 
     candidates
@@ -81,7 +105,7 @@ fn could_have_barrel_import(source: &str, needles: &[String]) -> bool {
     needles.is_empty() || needles.iter().any(|n| source.contains(n.as_str()))
 }
 
-fn is_candidate_file(entry: &DirEntry, ctx: &Context) -> bool {
+fn is_candidate_file(entry: &DirEntry, root_dir: &Path, matcher: Option<&GlobMatcher>) -> bool {
     if !entry.file_type().is_some_and(|ft| ft.is_file()) {
         return false;
     }
@@ -97,8 +121,11 @@ fn is_candidate_file(entry: &DirEntry, ctx: &Context) -> bool {
     {
         return false;
     }
-    let path_str = path.to_string_lossy();
-    path_str.contains(&ctx.reaper_glob)
+    let Some(matcher) = matcher else {
+        return true;
+    };
+    let rel = path.strip_prefix(root_dir).unwrap_or(path);
+    matcher.is_match(rel)
 }
 
 fn extract_barrel_statements(

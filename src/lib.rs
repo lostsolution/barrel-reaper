@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 
+#[cfg(feature = "cli")]
+pub mod cli;
 pub mod exports;
 pub mod imports;
 pub mod path;
@@ -22,15 +24,15 @@ pub enum SymbolKind {
 pub struct Context {
     pub barrel_file: PathBuf,
     pub barrel_alias: Option<String>,
-    pub reaper_glob: String,
+    pub search_glob: Option<String>,
     pub root_dir: PathBuf,
-    pub no_format: bool,
     pub dry_run: bool,
 }
 
 pub struct ReapedFile {
     pub file_path: PathBuf,
     pub content: String,
+    pub imports_rewritten: usize,
 }
 
 pub fn reap(ctx: &Context) -> Vec<ReapedFile> {

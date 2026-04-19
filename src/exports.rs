@@ -51,7 +51,9 @@ fn collect_into(
     if !visited.insert(file.to_path_buf()) {
         return;
     }
-    let Ok(source) = fs::read_to_string(file) else { return };
+    let Ok(source) = fs::read_to_string(file) else {
+        return;
+    };
 
     let barrel_dir = barrel.parent().unwrap_or(Path::new(""));
     let source_type = SourceType::from_path(file).unwrap_or_default();
@@ -170,16 +172,16 @@ fn declaration_names(decl: &Declaration) -> Vec<String> {
             .iter()
             .filter_map(|d| d.id.get_identifier_name().map(|s| s.to_string()))
             .collect(),
-        Declaration::FunctionDeclaration(f) => f
-            .id
-            .as_ref()
-            .map(|i| vec![i.name.to_string()])
-            .unwrap_or_default(),
-        Declaration::ClassDeclaration(c) => c
-            .id
-            .as_ref()
-            .map(|i| vec![i.name.to_string()])
-            .unwrap_or_default(),
+        Declaration::FunctionDeclaration(f) => {
+            f.id.as_ref()
+                .map(|i| vec![i.name.to_string()])
+                .unwrap_or_default()
+        }
+        Declaration::ClassDeclaration(c) => {
+            c.id.as_ref()
+                .map(|i| vec![i.name.to_string()])
+                .unwrap_or_default()
+        }
         Declaration::TSTypeAliasDeclaration(t) => vec![t.id.name.to_string()],
         Declaration::TSInterfaceDeclaration(i) => vec![i.id.name.to_string()],
         Declaration::TSEnumDeclaration(e) => vec![e.id.name.to_string()],

@@ -20,9 +20,14 @@ pub fn rewrite_file(
         .statements
         .iter()
         .flat_map(|stmt| {
-            stmt.imports
-                .iter()
-                .filter_map(|imp| Some(format_import(imp, exports.get(&imp.import_name)?, &info.file_path, ctx)))
+            stmt.imports.iter().filter_map(|imp| {
+                Some(format_import(
+                    imp,
+                    exports.get(&imp.import_name)?,
+                    &info.file_path,
+                    ctx,
+                ))
+            })
         })
         .collect();
 
@@ -34,11 +39,13 @@ pub fn rewrite_file(
     spans.sort_by_key(|s| s.start);
 
     let body = remove_spans(&source, &spans);
+    let imports_rewritten = new_imports.len();
     let content = format!("{}\n{body}", new_imports.join("\n"));
 
     Ok(ReapedFile {
         file_path: info.file_path.clone(),
         content,
+        imports_rewritten,
     })
 }
 
