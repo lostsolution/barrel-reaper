@@ -5,7 +5,18 @@ edition = "2024"
 description = "Barrel files sunt diabolus. Amen."
 license = "MIT"
 
+[features]
+default = ["cli"]
+cli = ["dep:anyhow", "dep:clap"]
+
+[dev-dependencies]
+assert_cmd = "2"
+tempfile = "3"
+
 [dependencies]
+anyhow = { version = "1", optional = true }
+clap = { version = "4", features = ["derive"], optional = true }
+globset = "0.4"
 ignore = "0.4.25"
 oxc_allocator = "0.126.0"
 oxc_ast = "0.126.0"
