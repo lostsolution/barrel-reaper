@@ -1,7 +1,6 @@
-use std::io::IsTerminal;
 use std::process::ExitCode;
 
-use barrel_reaper::cli::{self, Args, Mode, decide_mode};
+use barrel_reaper::cli::{self, Args};
 use clap::Parser;
 
 fn main() -> ExitCode {
@@ -11,23 +10,8 @@ fn main() -> ExitCode {
     {
         args.root_dir = abs;
     }
-    let stdin_tty = std::io::stdin().is_terminal();
-    let stdout_tty = std::io::stdout().is_terminal();
 
-    let mode = match decide_mode(&args, stdin_tty, stdout_tty) {
-        Ok(mode) => mode,
-        Err(msg) => {
-            eprintln!("error: {msg}");
-            return ExitCode::from(2);
-        }
-    };
-
-    let result = match mode {
-        Mode::Headless => cli::headless::run(&args),
-        Mode::Tui => cli::tui::run(&args),
-    };
-
-    match result {
+    match cli::headless::run(&args) {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
             eprintln!("error: {err:#}");
