@@ -1,0 +1,16 @@
+[package]
+name = "barrel-reaper"
+version = "0.0.1"
+edition = "2024"
+description = "Barrel files sunt diabolus. Amen."
+license = "MIT"
+
+[dependencies]
+ignore = "0.4.25"
+oxc_allocator = "0.126.0"
+oxc_ast = "0.126.0"
+oxc_parser = "0.126.0"
+oxc_resolver = "11.19.1"
+oxc_span = "0.126.0"
+pathdiff = "0.2.3"
+rayon = "1.12.0"

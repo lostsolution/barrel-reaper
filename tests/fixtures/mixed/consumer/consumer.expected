@@ -1,0 +1,12 @@
+import Calculator from '../barrel/b';
+import { greet } from '../barrel/a';
+import { farewell as sayGoodbye } from '../barrel/a';
+import { VERSION } from '../barrel/a';
+import type { Person } from '../barrel/a';
+
+new Calculator();
+void greet('x');
+void sayGoodbye('y');
+void VERSION;
+const p: Person = { name: 'A', age: 1 };
+void p;
