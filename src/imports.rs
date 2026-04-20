@@ -49,13 +49,19 @@ pub fn find_barrel_imports(ctx: &Context, resolver: &ModuleResolver) -> Vec<Barr
     let Ok(barrel_path) = fs::canonicalize(&ctx.barrel_file) else {
         return Vec::new();
     };
+    // Canonicalize root once so walker entries are absolute — oxc_resolver's
+    // per-file tsconfig walk-up needs an absolute anchor, and this avoids a
+    // syscall per candidate.
+    let Ok(root) = fs::canonicalize(&ctx.root_dir) else {
+        return Vec::new();
+    };
     let needles = build_needles(ctx);
     let matcher: Option<GlobMatcher> = ctx
         .search_glob
         .as_deref()
         .and_then(|g| Glob::new(g).ok().map(|g| g.compile_matcher()));
 
-    let candidates: Vec<DirEntry> = WalkBuilder::new(&ctx.root_dir)
+    let candidates: Vec<DirEntry> = WalkBuilder::new(&root)
         .standard_filters(true)
         .filter_entry(|entry| {
             entry
@@ -65,20 +71,20 @@ pub fn find_barrel_imports(ctx: &Context, resolver: &ModuleResolver) -> Vec<Barr
         })
         .build()
         .filter_map(Result::ok)
-        .filter(|entry| is_candidate_file(entry, &ctx.root_dir, matcher.as_ref()))
+        .filter(|entry| is_candidate_file(entry, &root, matcher.as_ref()))
         .collect();
 
     candidates
         .par_iter()
         .filter_map(|entry| {
-            let path = fs::canonicalize(entry.path()).ok()?;
-            let source = fs::read_to_string(&path).ok()?;
+            let path = entry.path();
+            let source = fs::read_to_string(path).ok()?;
             if !could_have_barrel_import(&source, &needles) {
                 return None;
             }
-            let statements = extract_barrel_statements(&path, &source, &barrel_path, resolver);
-            (!statements.is_empty()).then_some(BarrelImportInfo {
-                file_path: path,
+            let statements = extract_barrel_statements(path, &source, &barrel_path, resolver);
+            (!statements.is_empty()).then(|| BarrelImportInfo {
+                file_path: path.to_path_buf(),
                 statements,
             })
         })
