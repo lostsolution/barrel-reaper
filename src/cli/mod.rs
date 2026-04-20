@@ -34,4 +34,9 @@ pub struct Args {
     /// Print each reaped file path
     #[arg(short = 'v', long)]
     pub verbose: bool,
+
+    /// Emit per-stage counts and per-file miss diagnostics (why a file that
+    /// mentions the barrel didn't yield any barrel imports)
+    #[arg(long)]
+    pub debug: bool,
 }

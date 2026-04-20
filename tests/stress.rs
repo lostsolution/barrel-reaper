@@ -34,6 +34,7 @@ fn stress_reap() {
         search_glob: Some("src/**".to_string()),
         root_dir: tmp.clone(),
         dry_run: true,
+        debug: false,
     };
 
     // Warm caches: parser code, allocators, etc.

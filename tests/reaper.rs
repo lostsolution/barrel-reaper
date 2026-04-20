@@ -15,6 +15,7 @@ fn ctx(barrel: &str, alias: Option<&str>, glob: &str) -> Context {
         search_glob: Some(glob.to_string()),
         root_dir: PathBuf::from("tests"),
         dry_run: true,
+        debug: false,
     }
 }
 

@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use globset::{Glob, GlobMatcher};
 use ignore::{DirEntry, WalkBuilder};
@@ -83,7 +84,16 @@ where
         .as_deref()
         .and_then(|g| Glob::new(g).ok().map(|g| g.compile_matcher()));
 
-    WalkBuilder::new(&root)
+    let walked = AtomicUsize::new(0);
+    let needle_passed = AtomicUsize::new(0);
+    let had_barrel = AtomicUsize::new(0);
+    let bump = |c: &AtomicUsize| {
+        if ctx.debug {
+            c.fetch_add(1, Ordering::Relaxed);
+        }
+    };
+
+    let results: Vec<T> = WalkBuilder::new(&root)
         .standard_filters(true)
         .filter_entry(|entry| {
             entry
@@ -96,18 +106,35 @@ where
         .filter(|entry| is_candidate_file(entry, &root, matcher.as_ref()))
         .par_bridge()
         .filter_map(|entry| {
+            bump(&walked);
             let path = entry.path();
             let source = fs::read_to_string(path).ok()?;
             if !could_have_barrel_import(&source, &needles) {
                 return None;
             }
+            bump(&needle_passed);
             let statements = extract_barrel_statements(path, &source, &barrel_path, resolver);
             if statements.is_empty() {
+                if ctx.debug {
+                    let rel = path.strip_prefix(&root).unwrap_or(path);
+                    eprintln!("debug skipped: {}", rel.display());
+                }
                 return None;
             }
+            bump(&had_barrel);
             process(path, &source, statements)
         })
-        .collect()
+        .collect();
+
+    if ctx.debug {
+        eprintln!(
+            "debug: walked {} · {} passed needle · {} had barrel imports",
+            walked.load(Ordering::Relaxed),
+            needle_passed.load(Ordering::Relaxed),
+            had_barrel.load(Ordering::Relaxed),
+        );
+    }
+    results
 }
 
 fn build_needles(ctx: &Context) -> Vec<String> {

@@ -25,6 +25,8 @@ pub struct Context {
     pub search_glob: Option<String>,
     pub root_dir: PathBuf,
     pub dry_run: bool,
+    /// Emit per-stage counts and per-file miss diagnostics to stderr.
+    pub debug: bool,
 }
 
 pub struct ReapedFile {

@@ -24,6 +24,7 @@ pub fn run(args: &Args) -> Result<()> {
         search_glob: args.search_glob.clone(),
         root_dir: args.root_dir.clone(),
         dry_run: args.dry_run,
+        debug: args.debug,
     };
 
     let started = Instant::now();
