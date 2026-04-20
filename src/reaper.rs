@@ -25,7 +25,7 @@ pub fn rewrite_file(
         let any_resolvable = stmt
             .imports
             .iter()
-            .any(|imp| exports.contains_key(&imp.import_name));
+            .any(|imp| resolves(ctx, exports, &imp.import_name));
 
         // If no specifier in this statement resolves, leaving it intact
         // keeps the consumer compilable (it would fail the same way it did
@@ -39,14 +39,14 @@ pub fn rewrite_file(
         spans.push(expand_to_line_end(&source, stmt.span));
         for imp in &stmt.imports {
             match exports.get(&imp.import_name) {
-                Some(export) => {
+                Some(export) if can_rewrite(ctx, export) => {
                     if imports_rewritten > 0 {
                         content.push('\n');
                     }
                     content.push_str(&format_import(imp, export, &info.file_path, ctx));
                     imports_rewritten += 1;
                 }
-                None => unresolved.push(imp.import_name.clone()),
+                _ => unresolved.push(imp.import_name.clone()),
             }
         }
     }
@@ -64,6 +64,16 @@ pub fn rewrite_file(
         imports_rewritten,
         unresolved,
     })
+}
+
+/// Relative mode needs an absolute target to render a path relative to the
+/// consumer. Alias mode prefixes the stored `source_path` and is unaffected.
+fn can_rewrite(ctx: &Context, export: &BarrelExport) -> bool {
+    ctx.barrel_alias.is_some() || export.source_file_path.is_some()
+}
+
+fn resolves(ctx: &Context, exports: &HashMap<String, BarrelExport>, name: &str) -> bool {
+    exports.get(name).is_some_and(|e| can_rewrite(ctx, e))
 }
 
 fn format_import(

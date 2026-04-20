@@ -270,6 +270,29 @@ fn consumer_with_zero_resolvable_imports_is_flagged() {
     assert_eq!(r.unresolved, vec!["missing".to_string()]);
 }
 
+/// Relative mode + a barrel re-export whose source file can't be resolved
+/// (e.g. `export { X } from './missing'` where `./missing` doesn't exist).
+/// We can't write a correct relative path from the consumer to a target we
+/// couldn't locate — falling back to the raw re-export specifier emits a
+/// path relative to the *barrel*, not the consumer, which is wrong. Flag
+/// the name as unresolved and leave the consumer intact.
+#[test]
+fn relative_mode_flags_unresolvable_source() {
+    let results = reap(&ctx(
+        "tests/fixtures/unresolvable-source/barrel/index.ts",
+        None,
+        "fixtures/unresolvable-source/consumer/**",
+    ));
+
+    assert_eq!(results.len(), 1);
+    let r = &results[0];
+    let original =
+        fs::read_to_string("tests/fixtures/unresolvable-source/consumer/consumer.ts").unwrap();
+    assert_eq!(r.content, original, "file should be unchanged");
+    assert_eq!(r.imports_rewritten, 0);
+    assert_eq!(r.unresolved, vec!["X".to_string()]);
+}
+
 /// Partial case — `foo` resolves, `missing` doesn't. Resolvable names are
 /// rewritten as direct imports, the barrel statement is dropped, and the
 /// unresolved name is flagged. The consumer body's reference to `missing`

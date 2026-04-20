@@ -55,7 +55,7 @@ pub fn run(args: &Args) -> Result<()> {
                 .unwrap_or(&r.file_path);
             writeln!(
                 stderr,
-                "warning: {}: barrel does not export '{name}'",
+                "warning: {}: could not rewrite '{name}' (missing from barrel or unresolvable source)",
                 display.display()
             )?;
             warnings += 1;
