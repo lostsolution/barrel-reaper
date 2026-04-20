@@ -16,31 +16,30 @@ pub fn rewrite_file(
 ) -> std::io::Result<ReapedFile> {
     let source = fs::read_to_string(&info.file_path)?;
 
-    let new_imports: Vec<String> = info
-        .statements
-        .iter()
-        .flat_map(|stmt| {
-            stmt.imports.iter().filter_map(|imp| {
-                Some(format_import(
-                    imp,
-                    exports.get(&imp.import_name)?,
-                    &info.file_path,
-                    ctx,
-                ))
-            })
-        })
-        .collect();
-
     let mut spans: Vec<Span> = info
         .statements
         .iter()
         .map(|s| expand_to_line_end(&source, s.span))
         .collect();
     spans.sort_by_key(|s| s.start);
-
     let body = remove_spans(&source, &spans);
-    let imports_rewritten = new_imports.len();
-    let content = format!("{}\n{body}", new_imports.join("\n"));
+
+    let mut content = String::with_capacity(source.len());
+    let mut imports_rewritten = 0;
+    for stmt in &info.statements {
+        for imp in &stmt.imports {
+            let Some(export) = exports.get(&imp.import_name) else {
+                continue;
+            };
+            if imports_rewritten > 0 {
+                content.push('\n');
+            }
+            content.push_str(&format_import(imp, export, &info.file_path, ctx));
+            imports_rewritten += 1;
+        }
+    }
+    content.push('\n');
+    content.push_str(&body);
 
     Ok(ReapedFile {
         file_path: info.file_path.clone(),
