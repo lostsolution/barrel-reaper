@@ -13,7 +13,6 @@ use crate::{Context, SymbolKind};
 
 #[derive(Debug, Clone)]
 pub struct BarrelExport {
-    pub export_name: String,
     pub source_path: String,
     pub kind: SymbolKind,
     pub source_file_path: Option<PathBuf>,
@@ -72,7 +71,6 @@ fn collect_into(
                 exports.insert(
                     "default".to_string(),
                     BarrelExport {
-                        export_name: "default".to_string(),
                         source_path: barrel_export_path(file, barrel_dir, alias),
                         kind: SymbolKind::Default,
                         source_file_path: Some(file.to_path_buf()),
@@ -99,11 +97,9 @@ fn handle_export_all(
 
     match &decl.exported {
         Some(name_node) => {
-            let name = name_node.name().to_string();
             exports.insert(
-                name.clone(),
+                name_node.name().to_string(),
                 BarrelExport {
-                    export_name: name,
                     source_path: resolve_export_path(from_module, alias),
                     kind: SymbolKind::Named,
                     source_file_path: resolved,
@@ -132,17 +128,14 @@ fn handle_export_named(
         let source_path = resolve_export_path(from_module, alias);
 
         for spec in &decl.specifiers {
-            let exported = spec.exported.name().to_string();
-            let original = spec.local.name();
-            let kind = if original == "default" {
+            let kind = if spec.local.name() == "default" {
                 SymbolKind::Default
             } else {
                 SymbolKind::Named
             };
             exports.insert(
-                exported.clone(),
+                spec.exported.name().to_string(),
                 BarrelExport {
-                    export_name: exported,
                     source_path: source_path.clone(),
                     kind,
                     source_file_path: resolved.clone(),
@@ -153,9 +146,8 @@ fn handle_export_named(
         let source_path = barrel_export_path(file, barrel_dir, alias);
         for name in declaration_names(declaration) {
             exports.insert(
-                name.clone(),
+                name,
                 BarrelExport {
-                    export_name: name,
                     source_path: source_path.clone(),
                     kind: SymbolKind::Named,
                     source_file_path: Some(file.to_path_buf()),

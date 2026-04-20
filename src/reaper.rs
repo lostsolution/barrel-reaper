@@ -67,8 +67,8 @@ fn format_import(
         }
         SymbolKind::Named => {
             let binding = match &imp.local_name {
-                Some(local) => format!("{} as {local}", export.export_name),
-                None => export.export_name.clone(),
+                Some(local) => format!("{} as {local}", imp.import_name),
+                None => imp.import_name.clone(),
             };
             format!("import {type_prefix}{{ {binding} }} from '{source_path}';")
         }
