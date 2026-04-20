@@ -1,27 +1,26 @@
 use std::collections::HashMap;
-use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use oxc_span::Span;
 
 use crate::exports::BarrelExport;
-use crate::imports::{BarrelImport, BarrelImportInfo};
+use crate::imports::{BarrelImport, BarrelImportStatement};
 use crate::path::get_import_path;
 use crate::{Context, ReapedFile, SymbolKind};
 
-pub fn rewrite_file(
-    info: &BarrelImportInfo,
+pub fn rewrite(
+    file_path: PathBuf,
+    source: &str,
+    statements: &[BarrelImportStatement],
     exports: &HashMap<String, BarrelExport>,
     ctx: &Context,
-) -> std::io::Result<ReapedFile> {
-    let source = fs::read_to_string(&info.file_path)?;
-
-    let mut spans: Vec<Span> = Vec::with_capacity(info.statements.len());
+) -> ReapedFile {
+    let mut spans: Vec<Span> = Vec::with_capacity(statements.len());
     let mut content = String::with_capacity(source.len());
     let mut imports_rewritten = 0;
     let mut unresolved: Vec<String> = Vec::new();
 
-    for stmt in &info.statements {
+    for stmt in statements {
         let any_resolvable = stmt
             .imports
             .iter()
@@ -36,14 +35,14 @@ pub fn rewrite_file(
             continue;
         }
 
-        spans.push(expand_to_line_end(&source, stmt.span));
+        spans.push(expand_to_line_end(source, stmt.span));
         for imp in &stmt.imports {
             match exports.get(&imp.import_name) {
                 Some(export) if can_rewrite(ctx, export) => {
                     if imports_rewritten > 0 {
                         content.push('\n');
                     }
-                    content.push_str(&format_import(imp, export, &info.file_path, ctx));
+                    content.push_str(&format_import(imp, export, &file_path, ctx));
                     imports_rewritten += 1;
                 }
                 _ => unresolved.push(imp.import_name.clone()),
@@ -51,19 +50,19 @@ pub fn rewrite_file(
         }
     }
     spans.sort_by_key(|s| s.start);
-    let body = remove_spans(&source, &spans);
+    let body = remove_spans(source, &spans);
 
     if imports_rewritten > 0 {
         content.push('\n');
     }
     content.push_str(&body);
 
-    Ok(ReapedFile {
-        file_path: info.file_path.clone(),
+    ReapedFile {
+        file_path,
         content,
         imports_rewritten,
         unresolved,
-    })
+    }
 }
 
 /// Relative mode needs an absolute target to render a path relative to the

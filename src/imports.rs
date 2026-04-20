@@ -7,7 +7,6 @@ use oxc_allocator::Allocator;
 use oxc_ast::ast::*;
 use oxc_parser::Parser;
 use oxc_span::{GetSpan, SourceType, Span};
-use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 
 use crate::resolver::ModuleResolver;
@@ -47,6 +46,28 @@ pub struct BarrelImportInfo {
 }
 
 pub fn find_barrel_imports(ctx: &Context, resolver: &ModuleResolver) -> Vec<BarrelImportInfo> {
+    walk_barrel_candidates(ctx, resolver, |path, _source, statements| {
+        Some(BarrelImportInfo {
+            file_path: path.to_path_buf(),
+            statements,
+        })
+    })
+}
+
+/// Shared walker + discover pipeline. Canonicalizes once, streams entries
+/// through rayon via `par_bridge`, reads each file a single time, pre-filters
+/// by needle, parses, extracts barrel-import statements, then hands
+/// `(path, source, statements)` to `process`. Files with no barrel imports
+/// are dropped before `process` runs.
+pub(crate) fn walk_barrel_candidates<T, F>(
+    ctx: &Context,
+    resolver: &ModuleResolver,
+    process: F,
+) -> Vec<T>
+where
+    F: Fn(&Path, &str, Vec<BarrelImportStatement>) -> Option<T> + Send + Sync,
+    T: Send,
+{
     let Ok(barrel_path) = fs::canonicalize(&ctx.barrel_file) else {
         return Vec::new();
     };
@@ -81,10 +102,10 @@ pub fn find_barrel_imports(ctx: &Context, resolver: &ModuleResolver) -> Vec<Barr
                 return None;
             }
             let statements = extract_barrel_statements(path, &source, &barrel_path, resolver);
-            (!statements.is_empty()).then(|| BarrelImportInfo {
-                file_path: path.to_path_buf(),
-                statements,
-            })
+            if statements.is_empty() {
+                return None;
+            }
+            process(path, &source, statements)
         })
         .collect()
 }
