@@ -7,6 +7,7 @@ use oxc_allocator::Allocator;
 use oxc_ast::ast::*;
 use oxc_parser::Parser;
 use oxc_span::{GetSpan, SourceType, Span};
+use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 
 use crate::resolver::ModuleResolver;
@@ -61,7 +62,7 @@ pub fn find_barrel_imports(ctx: &Context, resolver: &ModuleResolver) -> Vec<Barr
         .as_deref()
         .and_then(|g| Glob::new(g).ok().map(|g| g.compile_matcher()));
 
-    let candidates: Vec<DirEntry> = WalkBuilder::new(&root)
+    WalkBuilder::new(&root)
         .standard_filters(true)
         .filter_entry(|entry| {
             entry
@@ -72,10 +73,7 @@ pub fn find_barrel_imports(ctx: &Context, resolver: &ModuleResolver) -> Vec<Barr
         .build()
         .filter_map(Result::ok)
         .filter(|entry| is_candidate_file(entry, &root, matcher.as_ref()))
-        .collect();
-
-    candidates
-        .par_iter()
+        .par_bridge()
         .filter_map(|entry| {
             let path = entry.path();
             let source = fs::read_to_string(path).ok()?;
