@@ -13,6 +13,8 @@ use rayon::prelude::*;
 use crate::resolver::ModuleResolver;
 use crate::{Context, SymbolKind};
 
+/// Skipped even when not in `.gitignore` (common build outputs that
+/// projects routinely forget to ignore).
 const DEFAULT_IGNORED_DIRS: &[&str] = &[
     "node_modules",
     "target",
@@ -55,11 +57,10 @@ pub fn find_barrel_imports(ctx: &Context, resolver: &ModuleResolver) -> Vec<Barr
     })
 }
 
-/// Shared walker + discover pipeline. Canonicalizes once, streams entries
-/// through rayon via `par_bridge`, reads each file a single time, pre-filters
-/// by needle, parses, extracts barrel-import statements, then hands
-/// `(path, source, statements)` to `process`. Files with no barrel imports
-/// are dropped before `process` runs.
+/// Discovery pipeline: walk, fast-string pre-filter, parse, extract barrel
+/// import statements, then hand `(path, source, statements)` to `process`.
+/// Each file is read exactly once; files with no barrel imports are dropped
+/// before `process` runs.
 pub(crate) fn walk_barrel_candidates<T, F>(
     ctx: &Context,
     resolver: &ModuleResolver,
@@ -72,9 +73,8 @@ where
     let Ok(barrel_path) = fs::canonicalize(&ctx.barrel_file) else {
         return Vec::new();
     };
-    // Canonicalize root once so walker entries are absolute — oxc_resolver's
-    // per-file tsconfig walk-up needs an absolute anchor, and this avoids a
-    // syscall per candidate.
+    // oxc_resolver's per-file tsconfig walk-up needs absolute paths.
+    // Canonicalizing the root once avoids a syscall per candidate.
     let Ok(root) = fs::canonicalize(&ctx.root_dir) else {
         return Vec::new();
     };
@@ -137,6 +137,9 @@ where
     results
 }
 
+/// Short strings any barrel-importing file must contain. The alias catches
+/// `@lib`-style imports; the parent dir name catches relative imports like
+/// `../lib` (index files are referenced by their folder).
 fn build_needles(ctx: &Context) -> Vec<String> {
     let mut needles = Vec::with_capacity(2);
     if let Some(alias) = &ctx.barrel_alias {
@@ -247,6 +250,8 @@ fn extract_specifiers(decl: &ImportDeclaration) -> Vec<BarrelImport> {
                     type_import: stmt_type_only || s.import_kind.is_type(),
                 })
             }
+            // `import * as X from barrel` pulls in the whole module;
+            // nothing to split, so we leave it untouched.
             ImportDeclarationSpecifier::ImportNamespaceSpecifier(_) => None,
         })
         .collect()

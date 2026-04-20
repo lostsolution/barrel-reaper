@@ -67,6 +67,9 @@ fn collect_into(
             Statement::ExportNamedDeclaration(decl) => {
                 handle_export_named(decl, file, barrel_dir, alias, resolver, exports);
             }
+            // Only the barrel's own `export default` becomes the published
+            // default. Defaults re-exported from deeper files arrive as
+            // named specifiers and are handled by `handle_export_named`.
             Statement::ExportDefaultDeclaration(_) if file == barrel => {
                 exports.insert(
                     "default".to_string(),
@@ -96,6 +99,7 @@ fn handle_export_all(
     let resolved = resolver.resolve(from_module, file);
 
     match &decl.exported {
+        // `export * as ns from './x'`: publishes `ns` as a single namespace.
         Some(name_node) => {
             exports.insert(
                 name_node.name().to_string(),
@@ -106,6 +110,7 @@ fn handle_export_all(
                 },
             );
         }
+        // `export * from './x'`: recurse and hoist every named export.
         None => {
             if let Some(target) = resolved {
                 collect_into(&target, barrel, alias, resolver, exports, visited);

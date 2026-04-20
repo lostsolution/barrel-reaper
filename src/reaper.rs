@@ -26,10 +26,9 @@ pub fn rewrite(
             .iter()
             .any(|imp| resolves(ctx, exports, &imp.import_name));
 
-        // If no specifier in this statement resolves, leaving it intact
-        // keeps the consumer compilable (it would fail the same way it did
-        // before reaper ran) — dropping it gains nothing. Still flag each
-        // name so the CLI can surface the mismatch.
+        // Leave the statement intact when nothing resolves: the consumer
+        // stays as-broken-as-before, and dropping it would only mask the
+        // mismatch. Names still flow into `unresolved` for the CLI.
         if !any_resolvable {
             unresolved.extend(stmt.imports.iter().map(|i| i.import_name.clone()));
             continue;
@@ -102,6 +101,8 @@ fn format_import(
     }
 }
 
+/// Swallow the trailing newline so removing the statement doesn't leave a
+/// blank line behind.
 fn expand_to_line_end(source: &str, span: Span) -> Span {
     let end = span.end as usize;
     let new_end = source[end..]
@@ -110,6 +111,7 @@ fn expand_to_line_end(source: &str, span: Span) -> Span {
     Span::new(span.start, new_end as u32)
 }
 
+/// Assumes `spans` is sorted ascending and non-overlapping.
 fn remove_spans(source: &str, spans: &[Span]) -> String {
     let mut out = String::with_capacity(source.len());
     let mut cursor = 0;

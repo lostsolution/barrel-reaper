@@ -12,6 +12,8 @@ impl ModuleResolver {
             extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]
                 .map(String::from)
                 .to_vec(),
+            // Auto walks up from each resolved file to find the nearest
+            // tsconfig. Required for monorepos where `paths` differ per package.
             tsconfig: Some(TsconfigDiscovery::Auto),
             ..ResolveOptions::default()
         };
@@ -20,6 +22,8 @@ impl ModuleResolver {
         }
     }
 
+    /// Must use `resolve_file` (not the dir-form API): `TsconfigDiscovery::Auto`
+    /// is silently ignored by the dir form.
     pub fn resolve(&self, specifier: &str, from_file: &Path) -> Option<PathBuf> {
         self.inner
             .resolve_file(from_file, specifier)

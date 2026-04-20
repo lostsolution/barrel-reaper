@@ -14,6 +14,9 @@ pub fn resolve_export_path(from_module: &str, alias: Option<&str>) -> String {
     }
 }
 
+/// Relative import string between two files. Always prefixed with `./` when
+/// not climbing with `../`, since bare paths would parse as bare-package
+/// specifiers.
 pub fn get_import_path(from_file: &Path, to_file: &Path) -> String {
     let from_dir = from_file.parent().unwrap_or(Path::new(""));
     let rel = pathdiff::diff_paths(to_file, from_dir).unwrap_or_else(|| to_file.to_path_buf());
