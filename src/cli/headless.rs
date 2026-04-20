@@ -35,6 +35,9 @@ pub fn run(args: &Args) -> Result<()> {
 
     if args.verbose {
         for r in &results {
+            if r.imports_rewritten == 0 {
+                continue;
+            }
             let display = r
                 .file_path
                 .strip_prefix(&ctx.root_dir)
@@ -43,13 +46,36 @@ pub fn run(args: &Args) -> Result<()> {
         }
     }
 
+    let mut warnings = 0usize;
+    for r in &results {
+        for name in &r.unresolved {
+            let display = r
+                .file_path
+                .strip_prefix(&ctx.root_dir)
+                .unwrap_or(&r.file_path);
+            writeln!(
+                stderr,
+                "warning: {}: barrel does not export '{name}'",
+                display.display()
+            )?;
+            warnings += 1;
+        }
+    }
+
+    let reaped_files = results.iter().filter(|r| r.imports_rewritten > 0).count();
     let total_imports: usize = results.iter().map(|r| r.imports_rewritten).sum();
     let verb = if ctx.dry_run { "would reap" } else { "reaped" };
+    let warn_suffix = if warnings > 0 {
+        format!(
+            " · {warnings} warning{}",
+            if warnings == 1 { "" } else { "s" }
+        )
+    } else {
+        String::new()
+    };
     let summary = format!(
-        "{verb} {} file{} · {} import{} rewritten · {:.2?}",
-        results.len(),
-        if results.len() == 1 { "" } else { "s" },
-        total_imports,
+        "{verb} {reaped_files} file{} · {total_imports} import{} rewritten{warn_suffix} · {:.2?}",
+        if reaped_files == 1 { "" } else { "s" },
         if total_imports == 1 { "" } else { "s" },
         elapsed,
     );

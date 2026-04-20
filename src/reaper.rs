@@ -16,35 +16,53 @@ pub fn rewrite_file(
 ) -> std::io::Result<ReapedFile> {
     let source = fs::read_to_string(&info.file_path)?;
 
-    let mut spans: Vec<Span> = info
-        .statements
-        .iter()
-        .map(|s| expand_to_line_end(&source, s.span))
-        .collect();
+    let mut spans: Vec<Span> = Vec::with_capacity(info.statements.len());
+    let mut content = String::with_capacity(source.len());
+    let mut imports_rewritten = 0;
+    let mut unresolved: Vec<String> = Vec::new();
+
+    for stmt in &info.statements {
+        let any_resolvable = stmt
+            .imports
+            .iter()
+            .any(|imp| exports.contains_key(&imp.import_name));
+
+        // If no specifier in this statement resolves, leaving it intact
+        // keeps the consumer compilable (it would fail the same way it did
+        // before reaper ran) — dropping it gains nothing. Still flag each
+        // name so the CLI can surface the mismatch.
+        if !any_resolvable {
+            unresolved.extend(stmt.imports.iter().map(|i| i.import_name.clone()));
+            continue;
+        }
+
+        spans.push(expand_to_line_end(&source, stmt.span));
+        for imp in &stmt.imports {
+            match exports.get(&imp.import_name) {
+                Some(export) => {
+                    if imports_rewritten > 0 {
+                        content.push('\n');
+                    }
+                    content.push_str(&format_import(imp, export, &info.file_path, ctx));
+                    imports_rewritten += 1;
+                }
+                None => unresolved.push(imp.import_name.clone()),
+            }
+        }
+    }
     spans.sort_by_key(|s| s.start);
     let body = remove_spans(&source, &spans);
 
-    let mut content = String::with_capacity(source.len());
-    let mut imports_rewritten = 0;
-    for stmt in &info.statements {
-        for imp in &stmt.imports {
-            let Some(export) = exports.get(&imp.import_name) else {
-                continue;
-            };
-            if imports_rewritten > 0 {
-                content.push('\n');
-            }
-            content.push_str(&format_import(imp, export, &info.file_path, ctx));
-            imports_rewritten += 1;
-        }
+    if imports_rewritten > 0 {
+        content.push('\n');
     }
-    content.push('\n');
     content.push_str(&body);
 
     Ok(ReapedFile {
         file_path: info.file_path.clone(),
         content,
         imports_rewritten,
+        unresolved,
     })
 }
 

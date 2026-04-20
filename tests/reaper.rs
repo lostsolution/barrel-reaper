@@ -248,3 +248,53 @@ fn resolver_resolves_sibling_modules() {
         .expect("resolution failed");
     assert_eq!(resolved, full_barrel_dir().join("module-enum.ts"));
 }
+
+// ---------- fixture: unresolved (consumer imports names the barrel doesn't export) ----------
+
+/// Every name is unresolved — nothing to rewrite, statement kept intact.
+/// The file is still returned (content == source, imports_rewritten == 0)
+/// carrying the unresolved names so the CLI can surface them as diagnostics.
+#[test]
+fn consumer_with_zero_resolvable_imports_is_flagged() {
+    let results = reap(&ctx(
+        "tests/fixtures/unresolved/barrel/index.ts",
+        None,
+        "fixtures/unresolved/consumer/**",
+    ));
+
+    assert_eq!(results.len(), 1, "expected the consumer to be returned");
+    let r = &results[0];
+    let original = fs::read_to_string("tests/fixtures/unresolved/consumer/consumer.ts").unwrap();
+    assert_eq!(r.content, original, "file should be unchanged");
+    assert_eq!(r.imports_rewritten, 0);
+    assert_eq!(r.unresolved, vec!["missing".to_string()]);
+}
+
+/// Partial case — `foo` resolves, `missing` doesn't. Resolvable names are
+/// rewritten as direct imports, the barrel statement is dropped, and the
+/// unresolved name is flagged. The consumer body's reference to `missing`
+/// will fail type-checking — but it was going to fail anyway (the name was
+/// never exported), and the CLI warning points at the cause.
+#[test]
+fn consumer_with_partially_unresolvable_import_is_rewritten_and_flagged() {
+    let results = reap(&ctx(
+        "tests/fixtures/unresolved/barrel/index.ts",
+        None,
+        "fixtures/unresolved/consumer-partial/**",
+    ));
+
+    assert_eq!(results.len(), 1);
+    let r = &results[0];
+    assert_eq!(r.imports_rewritten, 1);
+    assert_eq!(r.unresolved, vec!["missing".to_string()]);
+    assert!(
+        r.content.contains("import { foo } from"),
+        "expected direct import for resolved name, got:\n{}",
+        r.content,
+    );
+    assert!(
+        !r.content.contains("'../barrel'"),
+        "expected original barrel statement to be dropped, got:\n{}",
+        r.content,
+    );
+}

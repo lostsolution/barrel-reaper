@@ -33,6 +33,9 @@ pub struct ReapedFile {
     pub file_path: PathBuf,
     pub content: String,
     pub imports_rewritten: usize,
+    /// Names imported from the barrel that weren't found in its exports.
+    /// Callers (CLI, editor integrations) surface these as diagnostics.
+    pub unresolved: Vec<String>,
 }
 
 pub fn reap(ctx: &Context) -> Vec<ReapedFile> {
@@ -44,7 +47,9 @@ pub fn reap(ctx: &Context) -> Vec<ReapedFile> {
         .par_iter()
         .filter_map(|info| {
             let result = reaper::rewrite_file(info, &exports, ctx).ok()?;
-            if !ctx.dry_run {
+            // Only write when something actually changed. Files with zero
+            // rewrites may still be returned (for their `unresolved` diagnostics).
+            if !ctx.dry_run && result.imports_rewritten > 0 {
                 fs::write(&result.file_path, &result.content).ok()?;
             }
             Some(result)
