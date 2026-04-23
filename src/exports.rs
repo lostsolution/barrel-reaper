@@ -7,7 +7,7 @@ use oxc_ast::ast::*;
 use oxc_parser::Parser;
 use oxc_span::SourceType;
 
-use crate::path::{barrel_export_path, resolve_export_path};
+use crate::path::{barrel_export_path, resolved_export_path};
 use crate::resolver::ModuleResolver;
 use crate::{Context, SymbolKind};
 
@@ -62,7 +62,9 @@ fn collect_into(
     for stmt in &parsed.program.body {
         match stmt {
             Statement::ExportAllDeclaration(decl) => {
-                handle_export_all(decl, file, barrel, alias, resolver, exports, visited);
+                handle_export_all(
+                    decl, file, barrel, barrel_dir, alias, resolver, exports, visited,
+                );
             }
             Statement::ExportNamedDeclaration(decl) => {
                 handle_export_named(decl, file, barrel_dir, alias, resolver, exports);
@@ -90,6 +92,7 @@ fn handle_export_all(
     decl: &ExportAllDeclaration,
     file: &Path,
     barrel: &Path,
+    barrel_dir: &Path,
     alias: Option<&str>,
     resolver: &ModuleResolver,
     exports: &mut HashMap<String, BarrelExport>,
@@ -104,7 +107,12 @@ fn handle_export_all(
             exports.insert(
                 name_node.name().to_string(),
                 BarrelExport {
-                    source_path: resolve_export_path(from_module, alias),
+                    source_path: resolved_export_path(
+                        resolved.as_deref(),
+                        from_module,
+                        barrel_dir,
+                        alias,
+                    ),
                     kind: SymbolKind::Named,
                     source_file_path: resolved,
                 },
@@ -130,23 +138,8 @@ fn handle_export_named(
     if let Some(source) = &decl.source {
         let from_module = source.value.as_str();
         let resolved = resolver.resolve(from_module, file);
-        let source_path = resolve_export_path(from_module, alias);
-
-        for spec in &decl.specifiers {
-            let kind = if spec.local.name() == "default" {
-                SymbolKind::Default
-            } else {
-                SymbolKind::Named
-            };
-            exports.insert(
-                spec.exported.name().to_string(),
-                BarrelExport {
-                    source_path: source_path.clone(),
-                    kind,
-                    source_file_path: resolved.clone(),
-                },
-            );
-        }
+        let source_path = resolved_export_path(resolved.as_deref(), from_module, barrel_dir, alias);
+        insert_reexports(&decl.specifiers, &source_path, resolved.as_deref(), exports);
     } else if let Some(declaration) = &decl.declaration {
         let source_path = barrel_export_path(file, barrel_dir, alias);
         for name in declaration_names(declaration) {
@@ -159,6 +152,34 @@ fn handle_export_named(
                 },
             );
         }
+    } else if !decl.specifiers.is_empty() {
+        // `export { foo };` — republishing a local/imported binding. Point
+        // at the current file and let TS follow any further re-export chain.
+        let source_path = barrel_export_path(file, barrel_dir, alias);
+        insert_reexports(&decl.specifiers, &source_path, Some(file), exports);
+    }
+}
+
+fn insert_reexports(
+    specifiers: &[ExportSpecifier<'_>],
+    source_path: &str,
+    source_file_path: Option<&Path>,
+    exports: &mut HashMap<String, BarrelExport>,
+) {
+    for spec in specifiers {
+        let kind = if spec.local.name() == "default" {
+            SymbolKind::Default
+        } else {
+            SymbolKind::Named
+        };
+        exports.insert(
+            spec.exported.name().to_string(),
+            BarrelExport {
+                source_path: source_path.to_string(),
+                kind,
+                source_file_path: source_file_path.map(Path::to_path_buf),
+            },
+        );
     }
 }
 
