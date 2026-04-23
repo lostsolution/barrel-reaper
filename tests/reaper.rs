@@ -187,6 +187,35 @@ fn reaps_through_chained_barrels() {
     );
 }
 
+// ---------- fixture: nested-reexports (named/namespace + specifier-only +
+//                     out-of-barrel re-exports, some reached via `export *`) ----------
+
+const NESTED_BARREL: &str = "tests/fixtures/nested-reexports/barrel/index.ts";
+
+#[test]
+fn reaps_nested_reexports_via_alias() {
+    assert_reap_matches(
+        &ctx(
+            NESTED_BARREL,
+            Some("@barrel"),
+            "fixtures/nested-reexports/via-alias/**",
+        ),
+        "tests/fixtures/nested-reexports/via-alias/consumer.expected",
+    );
+}
+
+#[test]
+fn reaps_nested_reexports_via_relative() {
+    assert_reap_matches(
+        &ctx(
+            NESTED_BARREL,
+            None,
+            "fixtures/nested-reexports/via-relative/**",
+        ),
+        "tests/fixtures/nested-reexports/via-relative/consumer.expected",
+    );
+}
+
 // ---------- fixture: mixed (default + named + renamed + type) ----------
 
 #[test]

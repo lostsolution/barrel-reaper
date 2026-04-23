@@ -7,11 +7,34 @@ pub fn barrel_export_path(file: &Path, barrel_dir: &Path, alias: Option<&str>) -
     format!("{prefix}/{}", without_ext.display())
 }
 
-pub fn resolve_export_path(from_module: &str, alias: Option<&str>) -> String {
+/// Picks the right `source_path` for a re-export. When the target resolves
+/// inside `barrel_dir`, render it as a barrel-space path (alias or `./`);
+/// otherwise fall back to aliasing the literal specifier — a later
+/// consumer-relative rewrite in `reaper::format_import` will rescue
+/// out-of-barrel cases when we have a resolved target.
+pub fn resolved_export_path(
+    resolved: Option<&Path>,
+    literal: &str,
+    barrel_dir: &Path,
+    alias: Option<&str>,
+) -> String {
+    match resolved {
+        Some(target) if target.starts_with(barrel_dir) => {
+            barrel_export_path(target, barrel_dir, alias)
+        }
+        _ => aliased_literal(literal, alias),
+    }
+}
+
+fn aliased_literal(from_module: &str, alias: Option<&str>) -> String {
     match (alias, from_module.strip_prefix("./")) {
         (Some(alias), Some(rest)) => format!("{alias}/{rest}"),
         _ => from_module.to_string(),
     }
+}
+
+pub fn is_relative_specifier(spec: &str) -> bool {
+    spec.starts_with("./") || spec.starts_with("../")
 }
 
 /// Relative import string between two files. Always prefixed with `./` when

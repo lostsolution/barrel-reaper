@@ -1,0 +1,14 @@
+import { foo } from '../barrel/feature/impl';
+import { extras } from '../barrel/feature/extras';
+import { wrapped } from '../barrel/feature/wrapper';
+import { external } from '../shared/utils';
+import { nestedExternal } from '../shared/utils';
+import type { FooType } from '../barrel/feature/impl';
+
+void foo;
+void extras;
+void wrapped;
+void external;
+void nestedExternal;
+const fx: FooType = '';
+void fx;

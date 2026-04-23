@@ -5,7 +5,7 @@ use oxc_span::Span;
 
 use crate::exports::BarrelExport;
 use crate::imports::{BarrelImport, BarrelImportStatement};
-use crate::path::get_import_path;
+use crate::path::{get_import_path, is_relative_specifier};
 use crate::{Context, ReapedFile, SymbolKind};
 
 pub fn rewrite(
@@ -64,10 +64,16 @@ pub fn rewrite(
     }
 }
 
-/// Relative mode needs an absolute target to render a path relative to the
-/// consumer. Alias mode prefixes the stored `source_path` and is unaffected.
+/// With a resolved target we can always render a path (alias path if the
+/// target is inside the barrel, otherwise consumer-relative). Without one,
+/// alias mode can still emit the stored `source_path` — but only if it's a
+/// bare-package-style specifier; a relative literal would be wrong to paste
+/// into the consumer.
 fn can_rewrite(ctx: &Context, export: &BarrelExport) -> bool {
-    ctx.barrel_alias.is_some() || export.source_file_path.is_some()
+    if export.source_file_path.is_some() {
+        return true;
+    }
+    ctx.barrel_alias.is_some() && !is_relative_specifier(&export.source_path)
 }
 
 fn resolves(ctx: &Context, exports: &HashMap<String, BarrelExport>, name: &str) -> bool {
@@ -80,8 +86,13 @@ fn format_import(
     from_file: &Path,
     ctx: &Context,
 ) -> String {
-    let source_path = match (&ctx.barrel_alias, &export.source_file_path) {
-        (None, Some(target)) => get_import_path(from_file, target),
+    // Use the resolved target (consumer-relative) whenever the stored
+    // `source_path` isn't a valid specifier to paste into the consumer: in
+    // relative mode always, in alias mode when the target lives outside the
+    // barrel's alias space (`source_path` kept its relative literal).
+    let use_target = ctx.barrel_alias.is_none() || is_relative_specifier(&export.source_path);
+    let source_path = match &export.source_file_path {
+        Some(target) if use_target => get_import_path(from_file, target),
         _ => export.source_path.clone(),
     };
     let type_prefix = if imp.type_import { "type " } else { "" };
